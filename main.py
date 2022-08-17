@@ -3,13 +3,14 @@
 
 import csv
 import urllib
+import argparse
 
 import requests
 from bs4 import BeautifulSoup as BS
 
 URL = "http://books.toscrape.com/"
 URL_CATALOG = "http://books.toscrape.com/catalogue/"
-VERBOSE=True
+VERBOSE = False
 
 ratings = {
     'One': 1,
@@ -76,30 +77,32 @@ def get_book(
         "http://books.toscrape.com/catalogue/"
         "dark-notes_800/index.html"
     ),
-    category="Test",
 ):
     """get informations from a book"""
     book = {'url': url}
     soup = get_soup(url)
     misc = soup.find_all("td")
     book['upc'] = misc[0].renderContents().decode("utf-8")
-    title = soup.find("h1").get_text()
+    title = soup.find("h1").get_text().replace(";", "-")
     book['title'] = title
     book['price_including_tax'] = misc[3].string
     book['price_excluding_tax'] = misc[2].string
     availability = misc[5].renderContents().decode("utf-8")[10:-10]
     book['number_available'] = availability
-    descr = soup.find(id="product_description").find_next_siblings()[0].string
+    try:
+        descr = soup.find(id="product_description").find_next_siblings()[0].string
+    except AttributeError:
+        descr = None
     book['product_description'] = descr
+    category = soup.find("ul", class_="breadcrumb").findChildren()[4].get_text().strip("\n")
     book['category'] = category
     rating = soup.find("p", class_="star-rating").get_attribute_list('class')[1]
     book['review_rating'] = ratings[rating]
     img_uri = soup.find("img").get_attribute_list('src')[0]
     book['image_url'] = urllib.parse.urljoin(URL, img_uri)
 
-    # for data in book:
-    #     print(f"{data:<30} {book[data]}")
-
+    if VERBOSE:
+        print(f"{book['title']}")
     return book
 
 
@@ -120,7 +123,7 @@ def get_books(
     for elem in result:
         page = ("/").join(elem.a['href'].split("/")[-2:])
         book_url = urllib.parse.urljoin(URL_CATALOG, page)
-        book = get_book(book_url, category)
+        book = get_book(book_url)
         books.append(book)
     if next is not None:
         next_url = urllib.parse.urljoin(url, next.a['href'])
@@ -138,13 +141,34 @@ def get_all(categories):
 
 
 def main():
-    categories = get_categories()
-    all = get_all(categories)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c", "--category",
+        type=str, help="Scrapp a unique category with its page url")
+    parser.add_argument(
+        "-b", "--book",
+        type=str, help="Scrapp a unique book with its page url")
+    parser.add_argument(
+        "-v", "--verbose",
+        help="Display informations while scrapping (slower)",
+        action="store_true")
+    args = parser.parse_args()
+    if args.verbose:
+        global VERBOSE
+        VERBOSE = True
+    if args.category:
+        get_books(args.category)
+    elif args.book:
+        get_book(args.book)
+    else:
+        get_all(get_categories())
 
+    # get_book()
+    # categories = get_categories()
+    # all = get_all(categories)
 
 if __name__ == "__main__":
     try:
-        # main()
-        get_book()
+        main()
     except KeyboardInterrupt:
         print("\n--ABORTED--")
