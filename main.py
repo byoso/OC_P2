@@ -144,10 +144,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c", "--category",
-        type=str, help="Scrapp a unique category with its page url")
+        type=str, dest="category_url", help="Scrapp a unique category with its page url")
     parser.add_argument(
         "-b", "--book",
-        type=str, help="Scrapp a unique book with its page url")
+        type=str, dest="book_url", help="Scrapp a unique book with its page url")
     parser.add_argument(
         "-v", "--verbose",
         help="Display informations while scrapping (slower)",
@@ -156,10 +156,10 @@ def main():
     if args.verbose:
         global VERBOSE
         VERBOSE = True
-    if args.category:
-        get_books(args.category)
-    elif args.book:
-        get_book(args.book)
+    if args.category_url:
+        get_books(args.category_url)
+    elif args.book_url:
+        get_book(args.book_url)
     else:
         get_all(get_categories())
 
