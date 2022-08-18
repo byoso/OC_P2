@@ -38,27 +38,6 @@ def get_soup(url="http://books.toscrape.com/"):
     return soup
 
 
-# def csv_write(datas=None):
-#     headers = [
-#         "product_page_url",
-#         "upc",
-#         "title",
-#         "price_including_tax",
-#         "price_excluding_tax",
-#         "number_available",
-#         "product_description",
-#         "category",
-#         "review_rating",
-#         "image_url",
-#     ]
-#     with open("new.csv", "w") as csv_file:
-#         writing = csv.writer(csv_file, delimiter=",")
-#         writing.writerow(headers)
-#         if datas is not None:
-#             # for data in datas:
-#             writing.writerow(datas)
-
-
 def write_unique_book(book):
     """Writing datas for a single book"""
     base_path = f"Scrapping/livre seul/{book['title']}/"
