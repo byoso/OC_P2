@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # coding: utf-8
 
+import os
 import csv
 import urllib
 import argparse
@@ -37,25 +38,61 @@ def get_soup(url="http://books.toscrape.com/"):
     return soup
 
 
-def csv_write(datas=None):
-    headers = [
-        "product_page_url",
-        "upc",
-        "title",
-        "price_including_tax",
-        "price_excluding_tax",
-        "number_available",
-        "product_description",
-        "category",
-        "review_rating",
-        "image_url",
-    ]
-    with open("new.csv", "w") as csv_file:
-        writing = csv.writer(csv_file, delimiter=",")
-        writing.writerow(headers)
-        if datas is not None:
-            # for data in datas:
-            writing.writerow(datas)
+# def csv_write(datas=None):
+#     headers = [
+#         "product_page_url",
+#         "upc",
+#         "title",
+#         "price_including_tax",
+#         "price_excluding_tax",
+#         "number_available",
+#         "product_description",
+#         "category",
+#         "review_rating",
+#         "image_url",
+#     ]
+#     with open("new.csv", "w") as csv_file:
+#         writing = csv.writer(csv_file, delimiter=",")
+#         writing.writerow(headers)
+#         if datas is not None:
+#             # for data in datas:
+#             writing.writerow(datas)
+
+
+def write_unique_book(book):
+    """Writing datas for a single book"""
+    base_path = f"Scrapping/livre seul/{book['title']}/"
+    if not os.path.exists(base_path):
+        os.makedirs(base_path)
+    with open(f"{base_path}{book['title']}.csv", "w") as csv_file:
+        writing = csv.writer(csv_file, delimiter=";")
+        writing.writerow(book.keys())
+        writing.writerow(book.values())
+
+    img_data = requests.get(book['image_url']).content
+    with open(f"{base_path}{book['upc']}.jpg", 'wb') as handler:
+        handler.write(img_data)
+
+
+def write_unique_category(category):
+    """Writing datas for a category"""
+    category_name = category[0]['category']
+    base_path = f"Scrapping/Categories/{category_name}/"
+    images_path = f"{base_path}Images {category_name}/"
+    if not os.path.exists(images_path):
+        os.makedirs(images_path)
+    with open(f"{base_path}{category_name}.csv", "w") as csv_file:
+        writing = csv.writer(csv_file, delimiter=";")
+        writing.writerow(category[0].keys())
+        for book in category:
+            writing.writerow(book.values())
+
+            img_data = requests.get(book['image_url']).content
+            with open(
+                    f"{images_path}{book['upc']}.jpg",
+                    'wb'
+                    ) as handler:
+                handler.write(img_data)
 
 
 def get_categories():
@@ -79,7 +116,7 @@ def get_book(
     ),
 ):
     """get informations from a book"""
-    book = {'url': url}
+    book = {'product_page_url': url}
     soup = get_soup(url)
     misc = soup.find_all("td")
     book['upc'] = misc[0].renderContents().decode("utf-8")
@@ -131,23 +168,35 @@ def get_books(
     return books
 
 
-def get_all(categories):
-    """gather urls for each books of each category"""
-    categories = categories
-    for cat in categories:
-        cat['books'] = get_books(cat['index'], None, cat['name'])
-        display_category(cat)
-    return categories
+def handle_unique_book(url):
+    """Responds to CLI option --book"""
+    book = get_book(url)
+    write_unique_book(book)
+
+
+def handle_unique_category(url):
+    """Responds to CLI option --category"""
+    category = get_books(url)
+    write_unique_category(category)
+
+
+def handle_all():
+    """Responds to CLI with no option"""
+    categories = get_categories()
+    for category in categories:
+        handle_unique_category(category['index'])
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c", "--category",
-        type=str, dest="category_url", help="Scrapp a unique category with its page url")
+        type=str, dest="category_url",
+        help="Scrapp a unique category with its page url")
     parser.add_argument(
         "-b", "--book",
-        type=str, dest="book_url", help="Scrapp a unique book with its page url")
+        type=str, dest="book_url",
+        help="Scrapp a unique book with its page url")
     parser.add_argument(
         "-v", "--verbose",
         help="Display informations while scrapping (slower)",
@@ -157,15 +206,12 @@ def main():
         global VERBOSE
         VERBOSE = True
     if args.category_url:
-        get_books(args.category_url)
+        handle_unique_category(args.category_url)
     elif args.book_url:
-        get_book(args.book_url)
+        handle_unique_book(args.book_url)
     else:
-        get_all(get_categories())
+        handle_all()
 
-    # get_book()
-    # categories = get_categories()
-    # all = get_all(categories)
 
 if __name__ == "__main__":
     try:
