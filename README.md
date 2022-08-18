@@ -4,9 +4,9 @@
 
 ### Virtual environment
 
-To run this program you will need to install some dependencies. Tthe best way to do so is to create a virtual environment first.
+To run this program you will need to install some dependencies. The best way to do so is to create a virtual environment first.
 
-Open a terminal in the root repertory of this project, then type:
+Open a terminal in the root directory of this project, then type:
 ```
 $ python3 -m venv env
 ```
